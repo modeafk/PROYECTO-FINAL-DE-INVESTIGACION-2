@@ -16,14 +16,12 @@ struct LoadOptions {
     bool java_loader_compatible{false};
 };
 
-Dataset load_dataset(const std::filesystem::path& path,
-                     const LoadOptions& options = {});
+Dataset load_dataset(const std::filesystem::path& path,const LoadOptions& options = {});
 
 // CSV row format:
 // trajectory_id,longitude,latitude,timestamp
 // timestamp is an integer expressed in Unix seconds.
-Dataset load_temporal_dataset(const std::filesystem::path& path,
-                              const LoadOptions& options = {});
+Dataset load_temporal_dataset(const std::filesystem::path& path,const LoadOptions& options = {});
 
 struct PortoLoadOptions {
     // Maximum number of accepted trajectories. Zero means no limit and can
@@ -39,14 +37,10 @@ struct PortoLoadOptions {
 // Reads the original ECML/PKDD Porto train.csv. TIMESTAMP is the trip start;
 // point i receives TIMESTAMP + i * point_interval_seconds. When start/end are
 // present, only points in the half-open interval [start, end) are retained.
-Dataset load_porto_train_dataset(const std::filesystem::path& path,
-                                 const PortoLoadOptions& options = {});
+Dataset load_porto_train_dataset(const std::filesystem::path& path, const PortoLoadOptions& options = {});
 
 void save_positions(const Dataset& dataset, const std::filesystem::path& path);
-void save_selection(const std::vector<int>& trajectory_ids,
-                    const std::filesystem::path& path);
-void save_representativeness(const std::vector<int>& trajectory_ids,
-                             const std::vector<int>& scores,
-                             const std::filesystem::path& path);
+void save_selection(const std::vector<int>& trajectory_ids, const std::filesystem::path& path);
+void save_representativeness(const std::vector<int>& trajectory_ids,const std::vector<int>& scores,const std::filesystem::path& path);
 
 }  // namespace cheetah

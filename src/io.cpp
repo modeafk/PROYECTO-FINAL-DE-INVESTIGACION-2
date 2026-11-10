@@ -96,9 +96,9 @@ std::vector<Location> parse_porto_polyline(const std::string& polyline,
                 options.point_interval_seconds)) {
             throw std::overflow_error("Timestamp de punto fuera de rango");
         }
-        const Timestamp timestamp =
-            trip_start + static_cast<Timestamp>(point_index) *
-                             options.point_interval_seconds;
+
+        //porto registra un punto gps cada 15 seg
+        const Timestamp timestamp = trip_start + static_cast<Timestamp>(point_index) *options.point_interval_seconds;
         const bool after_start = !options.start_time ||
                                  timestamp >= *options.start_time;
         const bool before_end = !options.end_time ||
@@ -169,8 +169,7 @@ Dataset load_dataset(const std::filesystem::path& path, const LoadOptions& optio
     return dataset;
 }
 
-Dataset load_temporal_dataset(const std::filesystem::path& path,
-                              const LoadOptions& options) {
+Dataset load_temporal_dataset(const std::filesystem::path& path,const LoadOptions& options) {
     std::ifstream input(path);
     if (!input) {
         throw std::runtime_error("No se pudo abrir el dataset temporal: " +
@@ -242,9 +241,17 @@ Dataset load_temporal_dataset(const std::filesystem::path& path,
     }
     return dataset;
 }
+//carga los datos de train.csv que tenemos 
 
-Dataset load_porto_train_dataset(const std::filesystem::path& path,
-                                 const PortoLoadOptions& options) {
+/*
+train.csv contiene:
+- TRIP_ID: identificador del viaje.
+- TIMESTAMP: instante de inicio del viaje.
+- POLYLINE: secuencia de coordenadas [longitud, latitud].
+
+
+*/
+Dataset load_porto_train_dataset(const std::filesystem::path& path, const PortoLoadOptions& options) {
     if (options.point_interval_seconds <= 0) {
         throw std::invalid_argument("El intervalo de puntos debe ser positivo");
     }

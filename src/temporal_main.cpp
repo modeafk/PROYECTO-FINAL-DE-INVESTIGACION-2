@@ -27,8 +27,8 @@ struct Options {
     std::optional<cheetah::Timestamp> start_time;
     std::optional<cheetah::Timestamp> end_time;
     cheetah::Timestamp point_interval{15};
-    cheetah::Timestamp window_size{3600};
-    cheetah::Timestamp window_step{3600};
+    cheetah::Timestamp window_size{1800};
+    cheetah::Timestamp window_step{1800};
     std::size_t minimum_points{2};
     // sample_count == 0 activa el calculo k_j = ceil(alpha * |T_j|).
     std::size_t sample_count{0};

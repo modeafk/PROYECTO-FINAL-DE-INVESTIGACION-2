@@ -162,9 +162,7 @@ cheetah::GeoRect to_region(const Bounds& bounds) {
     return {bounds.min_lat, bounds.max_lat, bounds.min_lon, bounds.max_lon};
 }
 
-std::vector<Panel> query_panels(const std::filesystem::path& directory,
-                                const std::vector<WindowInfo>& chosen,
-                                double quality_target) {
+std::vector<Panel> query_panels(const std::filesystem::path& directory,const std::vector<WindowInfo>& chosen, double quality_target) {
     const auto settings = read_index_settings(directory);
     const cheetah::WebMercatorProjection projection(settings.projection);
     std::vector<cheetah::Dataset> windows;

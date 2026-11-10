@@ -27,10 +27,7 @@ struct TemporalFilterOptions {
 std::optional<std::pair<Timestamp, Timestamp>> dataset_time_bounds(
     const Dataset& dataset);
 
-std::vector<TimeWindow> generate_time_windows(Timestamp start,
-                                              Timestamp end,
-                                              Timestamp window_size,
-                                              Timestamp step);
+std::vector<TimeWindow> generate_time_windows(Timestamp start, Timestamp end,Timestamp window_size, Timestamp step);
 
 Dataset filter_by_time_window(
     const Dataset& dataset,

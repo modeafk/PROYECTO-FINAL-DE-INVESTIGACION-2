@@ -32,13 +32,14 @@ VqgsEngine::VqgsEngine(const Dataset& dataset) : dataset_(dataset) {
         all_pixels_.insert(trajectory.pixels.begin(), trajectory.pixels.end());
     }
 }
-
-int VqgsEngine::marginal_score(const Trajectory& trajectory,
-                               int delta,
-                               const PixelSet& covered) const {
+//aporte de una trayectoria candidate que no ha sido seleccionada,
+//En palabras: cuenta los píxeles de τ que todavía no están cubiertos por la muestra actual.
+int VqgsEngine::marginal_score(const Trajectory& trajectory,int delta,const PixelSet& covered) const {
     int score = 0;
     for (const auto& pixel : trajectory.pixels) {
         bool already_covered = false;
+        //verifica si una trayectoria seleccionada pasa cerca de un pixel, ese pixel se condisera representado
+        //se calcula con distancia de chebyshev
         for (int dx = -delta; dx <= delta && !already_covered; ++dx) {
             for (int dy = -delta; dy <= delta; ++dy) {
                 if (covered.find({pixel.x + dx, pixel.y + dy}) != covered.end()) {
@@ -53,10 +54,8 @@ int VqgsEngine::marginal_score(const Trajectory& trajectory,
     }
     return score;
 }
-
-void VqgsEngine::update_coverage(PixelSet& covered,
-                                 const Trajectory& trajectory,
-                                 int delta) const {
+//cuiando una trayectoria entra a la muestra, se actualiza la cobertura visual
+void VqgsEngine::update_coverage(PixelSet& covered,const Trajectory& trajectory,int delta) const {
     for (const auto& pixel : trajectory.pixels) {
         for (int dx = -delta; dx <= delta; ++dx) {
             for (int dy = -delta; dy <= delta; ++dy) {

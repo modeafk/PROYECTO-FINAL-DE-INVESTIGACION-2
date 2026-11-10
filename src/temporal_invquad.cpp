@@ -42,7 +42,18 @@ void validate_region(const GeoRect& region) {
 }
 
 }  // namespace
+// lo que hace es generar las ventanas del dataset, filtra las trayectorias
+//de cada ventana generada y construye un invquead +vqgs pasando por el maxheap y almacenamos 
+//esos valores, basicamente es la parte offline
 
+
+/*
+
+1. Genera W0, W1, W2, ...
+2. Crea un dataset temporal para cada ventana.
+3. Guarda los puntos de esa ventana.
+4. Construye un InvQuad espacial para esa ventana.
+5. Guarda el índice para usarlo después.*/
 TemporalIndexBuildResult TemporalInvQuadIndex::build(
     const Dataset& complete,
     const std::filesystem::path& output,
@@ -90,7 +101,7 @@ TemporalIndexBuildResult TemporalInvQuadIndex::build(
     }
     return report;
 }
-
+//esta es la parte online cuando hacemos la consulta 
 TemporalQueryResult TemporalInvQuadIndex::query(
     const std::filesystem::path& index_directory,
     std::size_t window_index,

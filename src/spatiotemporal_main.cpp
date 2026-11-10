@@ -310,8 +310,7 @@ int main(int argc, char** argv) {
             if (!options.explicit_index_directory &&
                 !std::filesystem::exists(
                     options.index_directory / "manifest.csv") &&
-                std::filesystem::exists(
-                    "output/porto_st_index_1k/manifest.csv")) {
+                std::filesystem::exists("output/porto_st_index_1k/manifest.csv")) {
                 options.index_directory = "output/porto_st_index_1k";
             }
             interactive(options.index_directory);

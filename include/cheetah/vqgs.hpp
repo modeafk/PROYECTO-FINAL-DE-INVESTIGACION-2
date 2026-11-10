@@ -32,8 +32,7 @@ public:
     explicit VqgsEngine(const Dataset& dataset);
 
     VqgsResult select(const VqgsOptions& options) const;
-    std::vector<int> representative_scores(const VqgsResult& result,
-                                           int delta) const;
+    std::vector<int> representative_scores(const VqgsResult& result, int delta) const;
     double quality(const VqgsResult& result) const;
 
     const PixelSet& all_pixels() const noexcept { return all_pixels_; }
@@ -42,19 +41,12 @@ private:
     const Dataset& dataset_;
     PixelSet all_pixels_;
 
-    int marginal_score(const Trajectory& trajectory,
-                       int delta,
-                       const PixelSet& covered) const;
-    void update_coverage(PixelSet& covered,
-                         const Trajectory& trajectory,
-                         int delta) const;
+    int marginal_score(const Trajectory& trajectory, int delta,const PixelSet& covered) const;
+    void update_coverage(PixelSet& covered,const Trajectory& trajectory,int delta) const;
 };
 
 // Reprojects the original locations and evaluates a fixed selection at a
 // requested zoom, matching the separate Quality stage in the Java project.
-double quality_at_projection(const Dataset& dataset,
-                             const std::vector<int>& trajectory_ids,
-                             const WebMercatorProjection& projection,
-                             int delta);
+double quality_at_projection(const Dataset& dataset,const std::vector<int>& trajectory_ids,const WebMercatorProjection& projection,int delta);
 
 }  // namespace cheetah
