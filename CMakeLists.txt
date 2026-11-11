@@ -33,6 +33,8 @@ add_executable(cheetahtraj-spatiotemporal src/spatiotemporal_main.cpp)
 target_link_libraries(cheetahtraj-spatiotemporal PRIVATE cheetahtraj)
 
 if(WIN32)
+    target_link_libraries(cheetahtraj-spatiotemporal PRIVATE psapi)
+
     add_executable(cheetahtraj-viewer src/viewer_win32.cpp)
     target_link_libraries(cheetahtraj-viewer PRIVATE cheetahtraj gdi32 user32)
 

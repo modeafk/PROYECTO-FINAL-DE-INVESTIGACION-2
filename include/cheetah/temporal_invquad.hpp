@@ -6,7 +6,9 @@
 #include "cheetah/types.hpp"
 
 #include <cstddef>
+#include <cstdint>
 #include <filesystem>
+#include <iosfwd>
 #include <vector>
 
 namespace cheetah {
@@ -24,6 +26,10 @@ struct TemporalIndexBuildResult {
     std::size_t windows{};
     std::size_t nonempty_windows{};
     std::size_t stored_segments{};
+    double invquad_build_ms{};
+    double invquad_save_ms{};
+    std::uintmax_t index_bytes{};
+    std::uintmax_t total_bytes{};
 };
 
 struct TemporalQueryResult {
@@ -41,7 +47,8 @@ public:
     static TemporalIndexBuildResult build(
         const Dataset& complete,
         const std::filesystem::path& output,
-        const TemporalIndexOptions& options);
+        const TemporalIndexOptions& options,
+        std::ostream* progress = nullptr);
 
     static TemporalQueryResult query(
         const std::filesystem::path& index_directory,

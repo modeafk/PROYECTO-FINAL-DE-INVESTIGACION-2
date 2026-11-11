@@ -16,7 +16,18 @@
 #include <string>
 #include <vector>
 
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#include <psapi.h>
+#endif
+
 namespace {
+
+// Numero de viajes validos de Porto usados por defecto al construir el indice.
+constexpr std::size_t kDefaultPortoTripLimit = 5000;
 
 struct Options {
     std::string command{"interactive"};
@@ -24,7 +35,7 @@ struct Options {
     std::filesystem::path index_directory{"output/temporal_invquad"};
     bool explicit_index_directory{false};
     std::string format{"generic"};
-    std::size_t limit{0};
+    std::optional<std::size_t> limit;
     std::optional<cheetah::Timestamp> from;
     std::optional<cheetah::Timestamp> to;
     std::optional<cheetah::Timestamp> at;
@@ -315,38 +326,68 @@ int main(int argc, char** argv) {
             }
             interactive(options.index_directory);
         } else if (options.command == "build") {
+            using Clock = std::chrono::steady_clock;
+            using Milliseconds = std::chrono::duration<double, std::milli>;
+            std::cout << std::fixed << std::setprecision(2)
+                      << "Leyendo dataset: " << options.dataset << std::endl;
+            const auto load_start = Clock::now();
             cheetah::Dataset dataset;
             if (options.format == "porto") {
-                if (options.limit == 0 && (!options.from || !options.to)) {
+                const bool has_date_range = options.from && options.to;
+                cheetah::PortoLoadOptions loader;
+                loader.limit = options.limit.value_or(
+                    has_date_range ? 0 : kDefaultPortoTripLimit);
+                if (loader.limit == 0 && !has_date_range) {
                     throw std::invalid_argument(
                         "Para Porto indique --limit o --from y --to");
                 }
-                cheetah::PortoLoadOptions loader;
-                loader.limit = options.limit;
                 loader.minimum_points = options.index.minimum_points;
                 loader.start_time = options.from;
                 loader.end_time = options.to;
                 dataset = cheetah::load_porto_train_dataset(options.dataset, loader);
             } else if (options.format == "generic") {
                 dataset = cheetah::load_temporal_dataset(options.dataset,
-                                                         {options.limit, false});
+                                                         {options.limit.value_or(0), false});
             } else {
                 throw std::invalid_argument("Formato desconocido");
             }
             if (dataset.trajectories.empty())
                 throw std::runtime_error("No se cargaron trayectorias");
+            const double load_ms = Milliseconds(Clock::now() - load_start).count();
             options.index.projection = projection_for(
                 dataset, options.index.projection.zoom);
-            const auto start = std::chrono::steady_clock::now();
+            std::cout << "Viajes cargados: " << dataset.trajectories.size()
+                      << " | Lectura: " << load_ms << " ms\n"
+                      << "Fase offline | altura " << options.index.height
+                      << " | delta " << options.index.delta
+                      << " | zoom " << options.index.projection.zoom << std::endl;
+            const auto start = Clock::now();
             const auto report = cheetah::TemporalInvQuadIndex::build(
-                dataset, options.index_directory, options.index);
-            const auto elapsed = std::chrono::duration_cast<
-                std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
-            std::cout << "Indice preparado: " << options.index_directory << '\n'
+                dataset, options.index_directory, options.index, &std::cout);
+            const double elapsed = Milliseconds(Clock::now() - start).count();
+#ifdef _WIN32
+            PROCESS_MEMORY_COUNTERS memory{};
+            memory.cb = sizeof(memory);
+            const bool has_memory = GetProcessMemoryInfo(
+                GetCurrentProcess(), &memory, sizeof(memory)) != 0;
+#endif
+            std::cout << "\nIndice preparado: " << options.index_directory << '\n'
                       << "Ventanas: " << report.windows
                       << ", no vacias: " << report.nonempty_windows
                       << ", segmentos: " << report.stored_segments << '\n'
-                      << "Tiempo offline (ms): " << elapsed.count() << '\n';
+                      << "Construccion InvQuad total (ms): " << report.invquad_build_ms << '\n'
+                      << "Guardado InvQuad total (ms): " << report.invquad_save_ms << '\n'
+                      << "Tiempo offline (ms, sin lectura): " << elapsed << '\n'
+                      << "Solo indices (bytes): " << report.index_bytes << '\n'
+                      << "Salida preparada total (bytes): " << report.total_bytes << '\n';
+#ifdef _WIN32
+            if (has_memory) {
+                std::cout << "RAM pico del proceso (MiB): "
+                          << memory.PeakWorkingSetSize / (1024.0 * 1024.0) << '\n';
+            } else {
+                std::cout << "RAM pico del proceso: no disponible\n";
+            }
+#endif
         } else if (options.command == "query") {
             if (!options.has_region) throw std::invalid_argument("Falta --bbox");
             if (options.window_index && options.at)

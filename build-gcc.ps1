@@ -1,4 +1,16 @@
+param(
+    [string]$Dataset = 'C:\Users\User\Documents\UCSP\2026-01\PFC1\Tema_investigacion\IMPLEMENTACION\implementacion1\archive\train.csv',
+    [ValidateRange(1, 2147483647)]
+    [int]$Limite,
+    [switch]$SoloCompilar
+)
+
 $ErrorActionPreference = 'Stop'
+
+if (-not $SoloCompilar) {
+    $datasetPath = (Get-Item -LiteralPath $Dataset).FullName
+}
+$compileTimer = [System.Diagnostics.Stopwatch]::StartNew()
 
 $compiler = 'C:\msys64\ucrt64\bin\g++.exe'
 if (-not (Test-Path -LiteralPath $compiler)) {
@@ -56,7 +68,7 @@ if ($LASTEXITCODE -ne 0) {
     -Iinclude `
     src/io.cpp src/projection.cpp src/vqgs.cpp src/quadtree.cpp src/invquad.cpp `
     src/temporal.cpp src/temporal_invquad.cpp src/spatiotemporal_main.cpp `
-    -o cheetahtraj-spatiotemporal.exe
+    -lpsapi -o cheetahtraj-spatiotemporal.exe
 
 if ($LASTEXITCODE -ne 0) {
     throw 'No se pudo compilar cheetahtraj-spatiotemporal.exe'
@@ -81,4 +93,23 @@ if ($LASTEXITCODE -ne 0) {
     throw 'No se pudo compilar cheetahtraj-temporal-visual-color.exe'
 }
 
-Write-Host 'Compilacion y pruebas completadas.'
+$compileTimer.Stop()
+Write-Host ('Compilacion y pruebas completadas. Tiempo: {0:F2} s.' -f $compileTimer.Elapsed.TotalSeconds)
+if ($SoloCompilar) { return }
+
+$runId = (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [guid]::NewGuid().ToString('N').Substring(0, 8)
+$indexDir = Join-Path $PSScriptRoot "output\porto_st_index_$runId"
+$limitArgs = @()
+if ($PSBoundParameters.ContainsKey('Limite')) {
+    $limitArgs = @('--limit', $Limite)
+}
+
+Write-Host "`nConstruyendo el indice temporal..."
+& .\cheetahtraj-spatiotemporal.exe build --format porto --dataset $datasetPath `
+    --index-dir $indexDir --window-size 3600 --window-step 3600 `
+    --min-points 2 --height 2 --delta 4 --zoom 15 @limitArgs
+if ($LASTEXITCODE -ne 0) { throw 'No se pudo construir el indice temporal' }
+
+Write-Host "`nAbriendo el menu del visor con el indice generado..."
+& .\cheetahtraj-temporal-visual-color.exe --index-dir $indexDir
+if ($LASTEXITCODE -ne 0) { throw 'El visor temporal termino con un error' }

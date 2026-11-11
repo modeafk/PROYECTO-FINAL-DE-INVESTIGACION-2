@@ -5,6 +5,7 @@
 #include "cheetah/vqgs.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <fstream>
 #include <iomanip>
 #include <memory>
@@ -57,7 +58,8 @@ void validate_region(const GeoRect& region) {
 TemporalIndexBuildResult TemporalInvQuadIndex::build(
     const Dataset& complete,
     const std::filesystem::path& output,
-    const TemporalIndexOptions& options) {
+    const TemporalIndexOptions& options,
+    std::ostream* progress) {
     if (options.height < 1 || options.delta < 0 ||
         options.minimum_points < 1) {
         throw std::invalid_argument("Altura, delta o min-points invalidos");
@@ -67,6 +69,7 @@ TemporalIndexBuildResult TemporalInvQuadIndex::build(
     const auto windows = generate_time_windows(bounds->first, bounds->second,
                                                options.window_size,
                                                options.window_step);
+    if (progress) *progress << "Ventanas generadas: " << windows.size() << std::endl;
     std::filesystem::create_directories(output);
     std::ofstream manifest(output / "manifest.csv");
     if (!manifest) throw std::runtime_error("No se pudo guardar manifest.csv");
@@ -92,13 +95,39 @@ TemporalIndexBuildResult TemporalInvQuadIndex::build(
         manifest << i << ',' << windows[i].start << ',' << windows[i].end
                  << ',' << current.trajectories.size() << '\n';
         report.stored_segments += current.trajectories.size();
+        if (progress) {
+            *progress << "  W" << i << ": " << current.trajectories.size()
+                      << " segmentos"
+                      << (current.trajectories.empty() ? " (vacia)" : " | construyendo InvQuad...")
+                      << std::endl;
+        }
         if (current.trajectories.empty()) continue;
         ++report.nonempty_windows;
         const auto stem = window_stem(i);
-        save_window(current, output / (stem + ".csv"));
+        const auto window_path = output / (stem + ".csv");
+        const auto index_path = output / (stem + ".invquad.csv");
+        save_window(current, window_path);
+        using Clock = std::chrono::steady_clock;
+        using Milliseconds = std::chrono::duration<double, std::milli>;
+        const auto before_build = Clock::now();
         InvQuadIndex index(current, projection, options.height, options.delta);
-        index.save(output / (stem + ".invquad.csv"));
+        const auto after_build = Clock::now();
+        index.save(index_path);
+        const double save_ms = Milliseconds(Clock::now() - after_build).count();
+        const double build_ms = Milliseconds(after_build - before_build).count();
+        const auto index_bytes = std::filesystem::file_size(index_path);
+        report.invquad_build_ms += build_ms;
+        report.invquad_save_ms += save_ms;
+        report.index_bytes += index_bytes;
+        report.total_bytes += index_bytes + std::filesystem::file_size(window_path);
+        if (progress) {
+            *progress << "     Construccion: " << build_ms
+                      << " ms | Guardado InvQuad: " << save_ms << " ms" << std::endl;
+        }
     }
+    manifest.close();
+    if (!manifest) throw std::runtime_error("No se pudo terminar de guardar manifest.csv");
+    report.total_bytes += std::filesystem::file_size(output / "manifest.csv");
     return report;
 }
 //esta es la parte online cuando hacemos la consulta 
